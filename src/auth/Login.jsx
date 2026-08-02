@@ -30,45 +30,49 @@ const Login = () => {
     }));
   };
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    if (!formData.email) return toast.error("Your Email is required");
-    if (!formData.password) return toast.error("Password is required");
-
-    try {
-      setLoading(true);
-      const response = await login(formData);
-      toast.success("Login Successful");
-
-      // Cookie options: if rememberMe is checked, persist for 7 days; otherwise session cookie
-      const cookieOptions = formData.rememberMe
-        ? { path: "/", maxAge: 7 * 24 * 60 * 60 } // 7 days in seconds
-        : { path: "/" }; // session cookie — deleted when browser closes
-
-      //   setCookie("userData", response?.user, cookieOptions);
-      //   setCookie("token", response?.access_token, cookieOptions);
-
-      const userRole = response?.user?.role;
-
-      // Small delay so the success toast is visible before we navigate away —
-      // keeps the transition from feeling abrupt.
-      setTimeout(() => {
-        if (userRole == "user") {
-          navigate("/fundraiser/dashboard/overview");
-        } else {
-          navigate("/admin/dashboard/overview");
-        }
-      }, 400);
-    } catch (error) {
-      setLoading(false);
-      console.log("login error", error);
-      if (error.message === "Network Error") {
-        toast.error("Network Error, please check your internet connection");
-      } else {
-        toast.error(error?.response?.data?.detail || "Login failed");
-      }
-    }
+  const handleSubmit = () => {
+    navigate("/worker/dashboard/overview");
   };
+
+  // const handleSubmit = async (e) => {
+  //   e.preventDefault();
+  //   if (!formData.email) return toast.error("Your Email is required");
+  //   if (!formData.password) return toast.error("Password is required");
+
+  //   try {
+  //     setLoading(true);
+  //     const response = await login(formData);
+  //     toast.success("Login Successful");
+
+  //     // Cookie options: if rememberMe is checked, persist for 7 days; otherwise session cookie
+  //     const cookieOptions = formData.rememberMe
+  //       ? { path: "/", maxAge: 7 * 24 * 60 * 60 } // 7 days in seconds
+  //       : { path: "/" }; // session cookie — deleted when browser closes
+
+  //     //   setCookie("userData", response?.user, cookieOptions);
+  //     //   setCookie("token", response?.access_token, cookieOptions);
+
+  //     const userRole = response?.user?.role;
+
+  //     // Small delay so the success toast is visible before we navigate away —
+  //     // keeps the transition from feeling abrupt.
+  //     setTimeout(() => {
+  //       if (userRole == "user") {
+  //         navigate("/worker/dashboard/overview");
+  //       } else {
+  //         navigate("/admin/dashboard/overview");
+  //       }
+  //     }, 400);
+  //   } catch (error) {
+  //     setLoading(false);
+  //     console.log("login error", error);
+  //     if (error.message === "Network Error") {
+  //       toast.error("Network Error, please check your internet connection");
+  //     } else {
+  //       toast.error(error?.response?.data?.detail || "Login failed");
+  //     }
+  //   }
+  // };
 
   const cardVariants = {
     hidden: { opacity: 0, y: 16 },

@@ -5,6 +5,12 @@ import ScrollToTop from "./ScrollToTop";
 import Login from "./auth/Login";
 import ForgotPassword from "./auth/ForgotPassword";
 import ResetPassword from "./auth/ResetPassword";
+import Profile from "./dashboard/workerDashboard/Profile";
+import DashboardLanding from "./dashboard/workerDashboard/DashboardLanding";
+import Overview from "./dashboard/workerDashboard/Overview";
+import CreateOrder from "./dashboard/workerDashboard/CreateOrder";
+import Orders from "./dashboard/workerDashboard/Orders";
+import OrderDetails from "./dashboard/workerDashboard/OrderDetails";
 
 const App = () => {
   return (
@@ -15,22 +21,14 @@ const App = () => {
         <Route path="/" element={<Login />} />
         <Route path="/forgot-password" element={<ForgotPassword />} />
         <Route path="/reset-password" element={<ResetPassword />} />
-        {/* 
-        <Route path="/fundraiser/dashboard" element={<DashboardLanding />}>
+
+        <Route path="/worker/dashboard" element={<DashboardLanding />}>
           <Route path="overview" element={<Overview />} />
-          <Route path="campaigns" element={<UserCampaigns />} />
-          <Route path="campaigns/:id" element={<CampaignDetail />} />
-          <Route path="create-campaign" element={<CreateCampaign />} />
+          <Route path="create-order" element={<CreateOrder />} />
+          <Route path="orders" element={<Orders />} />
+          <Route path="orders/order_id" element={<OrderDetails />} />
           <Route path="profile" element={<Profile />} />
-          <Route path="kyc" element={<KycVerification />} />
-          <Route path="campaign-updates" element={<CampaignUpdates />} />
-          <Route path="withdraw" element={<WithdrawFunds />} />
-          <Route path="withdrawal-history" element={<WithdrawalHistory />} />
-          <Route
-            path="withdrawal-history/:id/receipt"
-            element={<WithdrawalReceipt />}
-          />
-        </Route> */}
+        </Route>
 
         {/* <Route path="/admin/dashboard" element={<AdminDashboardLanding />}>
           <Route path="overview" element={<AdminOverview />} />
