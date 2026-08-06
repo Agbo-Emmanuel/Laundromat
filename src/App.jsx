@@ -11,6 +11,9 @@ import Overview from "./dashboard/workerDashboard/Overview";
 import CreateOrder from "./dashboard/workerDashboard/CreateOrder";
 import Orders from "./dashboard/workerDashboard/Orders";
 import OrderDetails from "./dashboard/workerDashboard/OrderDetails";
+import AdminDashboardLanding from "./dashboard/adminDashboard/AdminDashboardLanding";
+import AdminOverview from "./dashboard/adminDashboard/AdminOverview";
+import ManageUsers from "./dashboard/adminDashboard/ManageUsers";
 
 const App = () => {
   return (
@@ -26,23 +29,14 @@ const App = () => {
           <Route path="overview" element={<Overview />} />
           <Route path="create-order" element={<CreateOrder />} />
           <Route path="orders" element={<Orders />} />
-          <Route path="orders/order_id" element={<OrderDetails />} />
+          <Route path="orders/:order_id" element={<OrderDetails />} />
           <Route path="profile" element={<Profile />} />
         </Route>
 
-        {/* <Route path="/admin/dashboard" element={<AdminDashboardLanding />}>
+        <Route path="/admin/dashboard" element={<AdminDashboardLanding />}>
           <Route path="overview" element={<AdminOverview />} />
-          <Route path="campaigns" element={<ManageCampaigns />} />
-          <Route path="kyc" element={<ManageKYC />} />
           <Route path="users" element={<ManageUsers />} />
-          <Route path="manage-withdrawals" element={<ManageWithdrawal />} />
-          <Route
-            path="settings"
-            element={
-              <div className="text-white">Admin Settings Coming Soon</div>
-            }
-          />
-        </Route> */}
+        </Route>
       </Routes>
     </BrowserRouter>
   );

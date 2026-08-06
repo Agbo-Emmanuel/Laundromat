@@ -30,8 +30,9 @@ const Login = () => {
     }));
   };
 
-  const handleSubmit = () => {
-    navigate("/worker/dashboard/overview");
+  const handleSubmit = (e) => {
+    e.preventDefault();
+    navigate("/admin/dashboard/overview");
   };
 
   // const handleSubmit = async (e) => {
@@ -127,7 +128,7 @@ const Login = () => {
           <h1 className="text-2xl font-bold text-gray-900 mb-1.5">
             Welcome back
           </h1>
-          <p className="text-emerald-700/90 text-sm">
+          <p className="text-[#187099]/90 text-sm">
             Sign in to manage your Laundry.
           </p>
         </div>
@@ -164,7 +165,7 @@ const Login = () => {
               </label>
               <Link
                 to="/forgot-password"
-                className="text-emerald-700 text-sm font-medium hover:text-emerald-800 transition-colors"
+                className="text-[#1E88C7] text-sm font-medium hover:text-[#187099] transition-colors"
               >
                 Forgot password?
               </Link>
@@ -224,7 +225,7 @@ const Login = () => {
               whileTap={{ scale: loading ? 1 : 0.98 }}
               type="submit"
               disabled={loading}
-              className={`w-full py-3.5 bg-emerald-800 text-white font-semibold rounded-xl hover:bg-emerald-700 transition-colors duration-200 shadow-md shadow-emerald-900/10 flex items-center justify-center gap-2 ${
+              className={`w-full py-3.5 bg-[#1E88C7] text-white font-semibold rounded-xl hover:bg-[#187099] transition-colors duration-200 shadow-md shadow-[#187099]/10 flex items-center justify-center gap-2 ${
                 loading ? "opacity-70 cursor-not-allowed" : "cursor-pointer"
               }`}
             >

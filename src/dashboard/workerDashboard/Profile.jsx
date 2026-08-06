@@ -1,14 +1,10 @@
 import React, { useState, useRef, useEffect } from "react";
 import { motion } from "framer-motion";
-import { Link } from "react-router-dom";
 import {
   HiOutlineUserCircle,
-  HiOutlineShieldCheck,
   HiOutlineMail,
   HiOutlineCamera,
   HiOutlineCheckCircle,
-  HiOutlineClock,
-  HiOutlineArrowRight,
   HiOutlinePhone,
   HiOutlineGlobeAlt,
   HiOutlineOfficeBuilding,
@@ -19,24 +15,6 @@ import { useCookies } from "react-cookie";
 import { toast } from "react-toastify";
 import { getUserMe, updateUserMe } from "../../services/user.service";
 import UserProfile from "../components/UserProfile";
-
-// Normalizes whatever the backend sends ("approved", "verified", "pending"...)
-// down to the four states this page knows how to render.
-function normalizeKycStatus(status) {
-  const s = (status || "").toLowerCase();
-  if (s === "verified" || s === "approved") return "verified";
-  if (s === "pending" || s === "processing" || s === "in_review")
-    return "pending";
-  if (s === "rejected" || s === "declined") return "rejected";
-  return "unverified";
-}
-
-function formatMemberSince(dateString) {
-  if (!dateString) return "—";
-  const d = new Date(dateString);
-  if (Number.isNaN(d.getTime())) return "—";
-  return d.toLocaleDateString("en-US", { month: "long", year: "numeric" });
-}
 
 // Strips out empty/undefined fields so the payload only ever contains what
 // the person actually filled in, matching the "all fields optional" contract.
@@ -68,17 +46,21 @@ function buildUpdatePayload(formData) {
 }
 
 const FieldSkeleton = () => (
-  <div className="w-full h-[58px] bg-gray-100 animate-pulse rounded-2xl border border-gray-200" />
+  <div className="w-full h-[58px] bg-slate-100 animate-pulse rounded-2xl border border-slate-200" />
 );
 
-const SidebarCardSkeleton = () => (
-  <div className="p-6 bg-white border border-gray-200 rounded-3xl animate-pulse space-y-3">
-    <div className="h-4 w-32 bg-gray-100 rounded" />
-    <div className="h-4 w-24 bg-gray-100 rounded" />
-    <div className="h-3 w-full bg-gray-100 rounded" />
-    <div className="h-3 w-3/4 bg-gray-100 rounded" />
-  </div>
-);
+const fieldVariants = {
+  hidden: { opacity: 0, y: 8 },
+  show: { opacity: 1, y: 0, transition: { duration: 0.3, ease: "easeOut" } },
+};
+
+const containerVariants = {
+  hidden: { opacity: 0 },
+  show: {
+    opacity: 1,
+    transition: { staggerChildren: 0.06, delayChildren: 0.05 },
+  },
+};
 
 const Profile = () => {
   const [cookies, setCookie] = useCookies(["userData"]);
@@ -95,7 +77,6 @@ const Profile = () => {
     phone_number: "",
     country: "",
     account_type: "individual",
-    kyc_status: "",
     is_suspended: false,
     profile_image: null,
     organization_name: "",
@@ -150,7 +131,6 @@ const Profile = () => {
         phone_number: user.phone_number || "",
         country: user.country || "",
         account_type: user.account_type || "individual",
-        kyc_status: user.kyc_status || "",
         is_suspended: Boolean(user.is_suspended),
         profile_image: user.profile_image || null,
         organization_name: user.organization_name || "",
@@ -179,402 +159,311 @@ const Profile = () => {
     }
   };
 
-  const kycStatus = normalizeKycStatus(formData.kyc_status);
   const isOrganization = formData.account_type === "organization";
   const hasUnsavedLocalImage = formData.profile_image?.startsWith("data:");
 
   return (
-    <div className="w-full min-h-full bg-gray-50 space-y-8 pb-10">
+    <div className="w-full min-h-full space-y-8 pb-10">
       {/* Header */}
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900">Account Settings</h1>
-          <p className="text-gray-500 mt-1">
-            Manage your profile and verification status
-          </p>
+          <h1 className="text-3xl font-bold text-slate-900">
+            Account Settings
+          </h1>
+          <p className="text-slate-500 mt-1">Manage your profile details</p>
         </div>
         <UserProfile role="fundraiser" />
       </div>
 
       {/* Suspended account warning */}
       {!userLoading && formData.is_suspended && (
-        <div className="flex items-start gap-3 p-4 rounded-2xl bg-red-50 border border-red-200 text-red-700">
+        <motion.div
+          initial={{ opacity: 0, y: -6 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.3, ease: "easeOut" }}
+          className="flex items-start gap-3 p-4 rounded-2xl bg-rose-50 border border-rose-200 text-rose-700"
+        >
           <HiOutlineExclamation size={20} className="shrink-0 mt-0.5" />
           <div>
             <p className="font-semibold text-sm">Your account is suspended</p>
-            <p className="text-xs mt-0.5 text-red-600/80">
+            <p className="text-xs mt-0.5 text-rose-600/80">
               Some platform features are restricted. Contact support for more
               information.
             </p>
           </div>
-        </div>
+        </motion.div>
       )}
 
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
-        {/* Sidebar */}
-        <div className="lg:col-span-3 space-y-4">
-          <div className="flex items-center gap-3 px-6 py-4 rounded-2xl bg-teal-800 text-white shadow-lg shadow-teal-800/20 w-full">
-            <HiOutlineUserCircle size={24} />
-            <span className="font-semibold">Profile Details</span>
-          </div>
-
-          {userLoading ? (
-            <>
-              <SidebarCardSkeleton />
-              <SidebarCardSkeleton />
-            </>
-          ) : (
-            <>
-              {/* KYC status / CTA card */}
-              {kycStatus === "pending" && (
-                <div className="p-6 bg-white border border-gray-200 rounded-3xl shadow-sm">
-                  <div className="flex items-center gap-2 text-amber-600 mb-3">
-                    <HiOutlineClock size={20} />
-                    <span className="text-sm font-bold uppercase tracking-wider">
-                      Verification Status
-                    </span>
-                  </div>
-                  <p className="text-gray-900 font-medium">Pending Review</p>
-                  <p className="text-gray-500 text-xs mt-2 leading-relaxed">
-                    Your identity verification is currently being processed by
-                    our team. This usually takes 24-48 hours.
-                  </p>
-                </div>
-              )}
-
-              {kycStatus === "verified" && (
-                <div className="p-6 bg-white border border-gray-200 rounded-3xl shadow-sm">
-                  <div className="flex items-center gap-2 text-teal-700 mb-3">
-                    <HiOutlineCheckCircle size={20} />
-                    <span className="text-sm font-bold uppercase tracking-wider">
-                      Verification Status
-                    </span>
-                  </div>
-                  <p className="text-gray-900 font-medium">Verified</p>
-                  <p className="text-gray-500 text-xs mt-2 leading-relaxed">
-                    Your identity has been successfully verified. You now have
-                    full access to all platform features.
-                  </p>
-                </div>
-              )}
-
-              {(kycStatus === "unverified" || kycStatus === "rejected") && (
-                <Link
-                  to="/fundraiser/dashboard/kyc"
-                  className="block p-6 bg-white border border-gray-200 rounded-3xl hover:border-orange-300 hover:bg-orange-50/50 transition-all duration-200 shadow-sm group"
-                >
-                  <div className="flex items-center gap-2 text-gray-400 group-hover:text-orange-500 mb-3 transition-colors duration-200">
-                    <HiOutlineShieldCheck size={20} />
-                    <span className="text-sm font-bold uppercase tracking-wider">
-                      Verification Status
-                    </span>
-                  </div>
-                  <p className="text-gray-900 font-medium">
-                    {kycStatus === "rejected"
-                      ? "Verification Rejected"
-                      : "Not Verified"}
-                  </p>
-                  <p className="text-gray-500 text-xs mt-2 leading-relaxed">
-                    {kycStatus === "rejected"
-                      ? "Your last submission needs another look. Resubmit your documents to try again."
-                      : "Verify your identity to unlock donations, withdrawals, and full platform access."}
-                  </p>
-                  <div className="flex items-center gap-2 text-orange-500 text-sm font-bold mt-4">
-                    <span>
-                      {kycStatus === "rejected"
-                        ? "Resubmit documents"
-                        : "Start verification"}
-                    </span>
-                    <HiOutlineArrowRight size={16} />
-                  </div>
-                </Link>
-              )}
-
-              {/* Account info card */}
-              <div className="p-6 bg-white border border-gray-200 rounded-3xl shadow-sm space-y-3">
-                <span className="text-xs font-bold uppercase tracking-wider text-gray-400">
-                  Account Info
-                </span>
-                <div className="flex items-center justify-between text-sm">
-                  <span className="text-gray-500">Account type</span>
-                  <span className="font-semibold text-gray-900 capitalize">
-                    {formData.account_type}
-                  </span>
-                </div>
-                <div className="flex items-center justify-between text-sm">
-                  <span className="text-gray-500">Member since</span>
-                  <span className="font-semibold text-gray-900">
-                    {formatMemberSince(formData.created_at)}
-                  </span>
-                </div>
-                {formData.auth_provider && (
-                  <div className="flex items-center justify-between text-sm">
-                    <span className="text-gray-500">Signed in via</span>
-                    <span className="font-semibold text-gray-900 capitalize">
-                      {formData.auth_provider}
-                    </span>
-                  </div>
-                )}
-              </div>
-            </>
-          )}
-        </div>
-
-        {/* Main Content Area */}
-        <div className="lg:col-span-9">
+      {/* Main Content */}
+      <motion.div
+        initial={{ opacity: 0, y: 12 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.35, ease: "easeOut" }}
+        className="w-full mx-auto bg-white border border-slate-200 rounded-3xl p-6 md:p-10 shadow-sm"
+      >
+        <motion.form
+          variants={containerVariants}
+          initial="hidden"
+          animate="show"
+          onSubmit={handleProfileSubmit}
+          className="space-y-10"
+        >
+          {/* Profile Image Section */}
           <motion.div
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.3, ease: "easeOut" }}
-            className="bg-white border border-gray-200 rounded-3xl p-6 md:p-10 shadow-sm"
+            variants={fieldVariants}
+            className="flex flex-col sm:flex-row items-center gap-8"
           >
-            <form onSubmit={handleProfileSubmit} className="space-y-10">
-              {/* Profile Image Section */}
-              <div className="flex flex-col sm:flex-row items-center gap-8">
-                <div className="relative group">
-                  {userLoading ? (
-                    <div className="w-32 h-32 rounded-full bg-gray-100 animate-pulse border-2 border-gray-200" />
-                  ) : (
-                    <>
-                      <div className="w-32 h-32 rounded-full border-2 border-gray-200 bg-gray-50 overflow-hidden ring-4 ring-teal-700/10">
-                        {formData.profile_image ? (
-                          <img
-                            src={formData.profile_image}
-                            alt="Profile"
-                            className="w-full h-full object-cover"
-                          />
-                        ) : (
-                          <div className="w-full h-full flex items-center justify-center text-gray-300">
-                            <HiOutlineUserCircle size={64} />
-                          </div>
-                        )}
-                      </div>
-                      <button
-                        type="button"
-                        onClick={handleImageClick}
-                        className="absolute bottom-0 right-0 p-3 bg-teal-800 text-white rounded-full shadow-lg hover:bg-teal-700 transition-all duration-200 hover:scale-110 active:scale-95 cursor-pointer"
-                      >
-                        <HiOutlineCamera size={20} />
-                      </button>
-                    </>
-                  )}
-                  <input
-                    type="file"
-                    ref={fileInputRef}
-                    onChange={handleImageChange}
-                    className="hidden"
-                    accept="image/*"
-                  />
-                </div>
-                <div className="text-center sm:text-left space-y-2">
-                  <h3 className="text-2xl font-bold text-gray-900">
-                    Profile Photo
-                  </h3>
-                  <p className="text-gray-500 text-sm max-w-xs">
-                    This image will be visible to donors and other users across
-                    the platform.
-                  </p>
-                  <p className="text-teal-700/70 text-xs font-medium">
-                    Recommended: 400x400px • Max 2MB
-                  </p>
-                  {hasUnsavedLocalImage && (
-                    <p className="text-orange-500 text-xs font-medium">
-                      Preview only — photo upload will be available soon.
-                    </p>
-                  )}
-                </div>
-              </div>
-
-              <div className="h-px bg-gradient-to-r from-transparent via-gray-200 to-transparent" />
-
-              {/* Form Fields */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                <div className="space-y-3">
-                  <label className="text-sm font-semibold text-gray-500 ml-1">
-                    Full Name
-                  </label>
-                  <div className="relative group">
-                    {userLoading ? (
-                      <FieldSkeleton />
-                    ) : (
-                      <>
-                        <input
-                          type="text"
-                          name="full_name"
-                          placeholder="Your full name"
-                          value={formData.full_name}
-                          onChange={handleProfileChange}
-                          className="w-full bg-gray-50 border border-gray-200 rounded-2xl pl-12 pr-4 py-4 text-gray-900 focus:outline-none focus:border-teal-600 focus:ring-4 focus:ring-teal-600/10 focus:bg-white transition-all duration-200 placeholder:text-gray-400"
-                        />
-                        <HiOutlineUserCircle
-                          className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 group-focus-within:text-teal-700 transition-colors duration-200"
-                          size={22}
-                        />
-                      </>
-                    )}
-                  </div>
-                </div>
-
-                <div className="space-y-3">
-                  <label className="text-sm font-semibold text-gray-500 ml-1">
-                    Email Address
-                  </label>
-                  <div className="relative">
-                    {userLoading ? (
-                      <FieldSkeleton />
-                    ) : (
-                      <>
-                        <input
-                          disabled
-                          type="email"
-                          name="email"
-                          value={formData.email}
-                          className="w-full bg-gray-100/70 border border-gray-200 rounded-2xl pl-12 pr-4 py-4 text-gray-400 cursor-not-allowed italic"
-                        />
-                        <HiOutlineMail
-                          className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-300"
-                          size={22}
-                        />
-                      </>
-                    )}
-                  </div>
-                </div>
-
-                <div className="space-y-3">
-                  <label className="text-sm font-semibold text-gray-500 ml-1">
-                    Phone Number
-                  </label>
-                  <div className="relative group">
-                    {userLoading ? (
-                      <FieldSkeleton />
-                    ) : (
-                      <>
-                        <input
-                          type="tel"
-                          name="phone_number"
-                          placeholder="+234 800 000 0000"
-                          value={formData.phone_number}
-                          onChange={handleProfileChange}
-                          className="w-full bg-gray-50 border border-gray-200 rounded-2xl pl-12 pr-4 py-4 text-gray-900 focus:outline-none focus:border-teal-600 focus:ring-4 focus:ring-teal-600/10 focus:bg-white transition-all duration-200 placeholder:text-gray-400"
-                        />
-                        <HiOutlinePhone
-                          className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 group-focus-within:text-teal-700 transition-colors duration-200"
-                          size={22}
-                        />
-                      </>
-                    )}
-                  </div>
-                </div>
-
-                <div className="space-y-3">
-                  <label className="text-sm font-semibold text-gray-500 ml-1">
-                    Country
-                  </label>
-                  <div className="relative group">
-                    {userLoading ? (
-                      <FieldSkeleton />
-                    ) : (
-                      <>
-                        <input
-                          type="text"
-                          name="country"
-                          placeholder="Your country"
-                          value={formData.country}
-                          onChange={handleProfileChange}
-                          className="w-full bg-gray-50 border border-gray-200 rounded-2xl pl-12 pr-4 py-4 text-gray-900 focus:outline-none focus:border-teal-600 focus:ring-4 focus:ring-teal-600/10 focus:bg-white transition-all duration-200 placeholder:text-gray-400"
-                        />
-                        <HiOutlineGlobeAlt
-                          className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 group-focus-within:text-teal-700 transition-colors duration-200"
-                          size={22}
-                        />
-                      </>
-                    )}
-                  </div>
-                </div>
-
-                {/* Organization-only fields */}
-                {!userLoading && isOrganization && (
-                  <>
-                    <div className="space-y-3">
-                      <label className="text-sm font-semibold text-gray-500 ml-1">
-                        Organization Name
-                      </label>
-                      <div className="relative group">
-                        <input
-                          type="text"
-                          name="organization_name"
-                          placeholder="Your organization's name"
-                          value={formData.organization_name}
-                          onChange={handleProfileChange}
-                          className="w-full bg-gray-50 border border-gray-200 rounded-2xl pl-12 pr-4 py-4 text-gray-900 focus:outline-none focus:border-teal-600 focus:ring-4 focus:ring-teal-600/10 focus:bg-white transition-all duration-200 placeholder:text-gray-400"
-                        />
-                        <HiOutlineOfficeBuilding
-                          className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 group-focus-within:text-teal-700 transition-colors duration-200"
-                          size={22}
-                        />
-                      </div>
-                    </div>
-
-                    <div className="space-y-3">
-                      <label className="text-sm font-semibold text-gray-500 ml-1">
-                        Website
-                      </label>
-                      <div className="relative group">
-                        <input
-                          type="url"
-                          name="website"
-                          placeholder="https://yourorganization.com"
-                          value={formData.website}
-                          onChange={handleProfileChange}
-                          className="w-full bg-gray-50 border border-gray-200 rounded-2xl pl-12 pr-4 py-4 text-gray-900 focus:outline-none focus:border-teal-600 focus:ring-4 focus:ring-teal-600/10 focus:bg-white transition-all duration-200 placeholder:text-gray-400"
-                        />
-                        <HiOutlineLink
-                          className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 group-focus-within:text-teal-700 transition-colors duration-200"
-                          size={22}
-                        />
-                      </div>
-                    </div>
-
-                    <div className="space-y-3 md:col-span-2">
-                      <label className="text-sm font-semibold text-gray-500 ml-1">
-                        Organization Description
-                      </label>
-                      <textarea
-                        name="organization_description"
-                        placeholder="Tell donors about your organization"
-                        value={formData.organization_description}
-                        onChange={handleProfileChange}
-                        rows={4}
-                        className="w-full bg-gray-50 border border-gray-200 rounded-2xl px-4 py-4 text-gray-900 focus:outline-none focus:border-teal-600 focus:ring-4 focus:ring-teal-600/10 focus:bg-white transition-all duration-200 placeholder:text-gray-400 resize-none"
+            <div className="relative group">
+              {userLoading ? (
+                <div className="w-32 h-32 rounded-full bg-slate-100 animate-pulse border-2 border-slate-200" />
+              ) : (
+                <>
+                  <div className="w-32 h-32 rounded-full border-2 border-slate-200 bg-slate-50 overflow-hidden ring-4 ring-[#1E88C7]/10 transition-shadow duration-300 group-hover:ring-[#1E88C7]/20">
+                    {formData.profile_image ? (
+                      <img
+                        src={formData.profile_image}
+                        alt="Profile"
+                        className="w-full h-full object-cover"
                       />
-                    </div>
+                    ) : (
+                      <div className="w-full h-full flex items-center justify-center text-slate-300">
+                        <HiOutlineUserCircle size={64} />
+                      </div>
+                    )}
+                  </div>
+                  <button
+                    type="button"
+                    onClick={handleImageClick}
+                    className="absolute bottom-0 right-0 p-3 bg-[#1E88C7] text-white rounded-full shadow-lg shadow-[#1E88C7]/30 hover:bg-[#187099] transition-all duration-200 hover:scale-110 active:scale-95 cursor-pointer"
+                  >
+                    <HiOutlineCamera size={20} />
+                  </button>
+                </>
+              )}
+              <input
+                type="file"
+                ref={fileInputRef}
+                onChange={handleImageChange}
+                className="hidden"
+                accept="image/*"
+              />
+            </div>
+            <div className="text-center sm:text-left space-y-2">
+              <h3 className="text-2xl font-bold text-slate-900">
+                Profile Photo
+              </h3>
+              <p className="text-slate-500 text-sm max-w-xs">
+                This image will be visible to donors and other users across the
+                platform.
+              </p>
+              <p className="text-[#1E88C7]/70 text-xs font-medium">
+                Recommended: 400x400px • Max 2MB
+              </p>
+              {hasUnsavedLocalImage && (
+                <p className="text-amber-600 text-xs font-medium">
+                  Preview only — photo upload will be available soon.
+                </p>
+              )}
+            </div>
+          </motion.div>
+
+          <motion.div
+            variants={fieldVariants}
+            className="h-px bg-gradient-to-r from-transparent via-slate-200 to-transparent"
+          />
+
+          {/* Form Fields */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+            <motion.div variants={fieldVariants} className="space-y-3">
+              <label className="text-sm font-semibold text-slate-500 ml-1">
+                Full Name
+              </label>
+              <div className="relative group">
+                {userLoading ? (
+                  <FieldSkeleton />
+                ) : (
+                  <>
+                    <input
+                      type="text"
+                      name="full_name"
+                      placeholder="Your full name"
+                      value={formData.full_name}
+                      onChange={handleProfileChange}
+                      className="w-full bg-slate-50 border border-slate-200 rounded-2xl pl-12 pr-4 py-4 text-slate-900 focus:outline-none focus:border-[#1E88C7] focus:ring-4 focus:ring-[#1E88C7]/10 focus:bg-white transition-all duration-200 placeholder:text-slate-400"
+                    />
+                    <HiOutlineUserCircle
+                      className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-[#1E88C7] transition-colors duration-200"
+                      size={22}
+                    />
                   </>
                 )}
               </div>
+            </motion.div>
 
-              <div className="pt-6 border-t border-gray-200">
-                <button
-                  type="submit"
-                  disabled={loading || userLoading}
-                  className="w-full sm:w-auto px-12 py-4 bg-teal-800 hover:bg-teal-700 text-white font-bold rounded-2xl shadow-lg shadow-teal-800/20 transition-all duration-200 hover:scale-[1.02] active:scale-[0.98] disabled:opacity-60 disabled:hover:scale-100 flex items-center justify-center gap-3 cursor-pointer"
-                >
-                  {loading ? (
-                    <>
-                      <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                      <span>Updating Profile...</span>
-                    </>
-                  ) : (
-                    <>
-                      <HiOutlineCheckCircle size={22} />
-                      <span>Save Profile Details</span>
-                    </>
-                  )}
-                </button>
+            <motion.div variants={fieldVariants} className="space-y-3">
+              <label className="text-sm font-semibold text-slate-500 ml-1">
+                Email Address
+              </label>
+              <div className="relative">
+                {userLoading ? (
+                  <FieldSkeleton />
+                ) : (
+                  <>
+                    <input
+                      disabled
+                      type="email"
+                      name="email"
+                      value={formData.email}
+                      className="w-full bg-slate-100/70 border border-slate-200 rounded-2xl pl-12 pr-4 py-4 text-slate-400 cursor-not-allowed italic"
+                    />
+                    <HiOutlineMail
+                      className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-300"
+                      size={22}
+                    />
+                  </>
+                )}
               </div>
-            </form>
+            </motion.div>
+
+            <motion.div variants={fieldVariants} className="space-y-3">
+              <label className="text-sm font-semibold text-slate-500 ml-1">
+                Phone Number
+              </label>
+              <div className="relative group">
+                {userLoading ? (
+                  <FieldSkeleton />
+                ) : (
+                  <>
+                    <input
+                      type="tel"
+                      name="phone_number"
+                      placeholder="+234 800 000 0000"
+                      value={formData.phone_number}
+                      onChange={handleProfileChange}
+                      className="w-full bg-slate-50 border border-slate-200 rounded-2xl pl-12 pr-4 py-4 text-slate-900 focus:outline-none focus:border-[#1E88C7] focus:ring-4 focus:ring-[#1E88C7]/10 focus:bg-white transition-all duration-200 placeholder:text-slate-400"
+                    />
+                    <HiOutlinePhone
+                      className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-[#1E88C7] transition-colors duration-200"
+                      size={22}
+                    />
+                  </>
+                )}
+              </div>
+            </motion.div>
+
+            <motion.div variants={fieldVariants} className="space-y-3">
+              <label className="text-sm font-semibold text-slate-500 ml-1">
+                Country
+              </label>
+              <div className="relative group">
+                {userLoading ? (
+                  <FieldSkeleton />
+                ) : (
+                  <>
+                    <input
+                      type="text"
+                      name="country"
+                      placeholder="Your country"
+                      value={formData.country}
+                      onChange={handleProfileChange}
+                      className="w-full bg-slate-50 border border-slate-200 rounded-2xl pl-12 pr-4 py-4 text-slate-900 focus:outline-none focus:border-[#1E88C7] focus:ring-4 focus:ring-[#1E88C7]/10 focus:bg-white transition-all duration-200 placeholder:text-slate-400"
+                    />
+                    <HiOutlineGlobeAlt
+                      className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-[#1E88C7] transition-colors duration-200"
+                      size={22}
+                    />
+                  </>
+                )}
+              </div>
+            </motion.div>
+
+            {/* Organization-only fields */}
+            {!userLoading && isOrganization && (
+              <>
+                <motion.div variants={fieldVariants} className="space-y-3">
+                  <label className="text-sm font-semibold text-slate-500 ml-1">
+                    Organization Name
+                  </label>
+                  <div className="relative group">
+                    <input
+                      type="text"
+                      name="organization_name"
+                      placeholder="Your organization's name"
+                      value={formData.organization_name}
+                      onChange={handleProfileChange}
+                      className="w-full bg-slate-50 border border-slate-200 rounded-2xl pl-12 pr-4 py-4 text-slate-900 focus:outline-none focus:border-[#1E88C7] focus:ring-4 focus:ring-[#1E88C7]/10 focus:bg-white transition-all duration-200 placeholder:text-slate-400"
+                    />
+                    <HiOutlineOfficeBuilding
+                      className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-[#1E88C7] transition-colors duration-200"
+                      size={22}
+                    />
+                  </div>
+                </motion.div>
+
+                <motion.div variants={fieldVariants} className="space-y-3">
+                  <label className="text-sm font-semibold text-slate-500 ml-1">
+                    Website
+                  </label>
+                  <div className="relative group">
+                    <input
+                      type="url"
+                      name="website"
+                      placeholder="https://yourorganization.com"
+                      value={formData.website}
+                      onChange={handleProfileChange}
+                      className="w-full bg-slate-50 border border-slate-200 rounded-2xl pl-12 pr-4 py-4 text-slate-900 focus:outline-none focus:border-[#1E88C7] focus:ring-4 focus:ring-[#1E88C7]/10 focus:bg-white transition-all duration-200 placeholder:text-slate-400"
+                    />
+                    <HiOutlineLink
+                      className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-[#1E88C7] transition-colors duration-200"
+                      size={22}
+                    />
+                  </div>
+                </motion.div>
+
+                <motion.div
+                  variants={fieldVariants}
+                  className="space-y-3 md:col-span-2"
+                >
+                  <label className="text-sm font-semibold text-slate-500 ml-1">
+                    Organization Description
+                  </label>
+                  <textarea
+                    name="organization_description"
+                    placeholder="Tell donors about your organization"
+                    value={formData.organization_description}
+                    onChange={handleProfileChange}
+                    rows={4}
+                    className="w-full bg-slate-50 border border-slate-200 rounded-2xl px-4 py-4 text-slate-900 focus:outline-none focus:border-[#1E88C7] focus:ring-4 focus:ring-[#1E88C7]/10 focus:bg-white transition-all duration-200 placeholder:text-slate-400 resize-none"
+                  />
+                </motion.div>
+              </>
+            )}
+          </div>
+
+          <motion.div
+            variants={fieldVariants}
+            className="pt-6 border-t border-slate-200"
+          >
+            <button
+              type="submit"
+              disabled={loading || userLoading}
+              className="w-full sm:w-auto px-12 py-4 bg-[#1E88C7] hover:bg-[#187099] text-white font-bold rounded-2xl shadow-lg shadow-[#1E88C7]/20 transition-all duration-200 hover:scale-[1.02] active:scale-[0.98] disabled:opacity-60 disabled:hover:scale-100 flex items-center justify-center gap-3 cursor-pointer"
+            >
+              {loading ? (
+                <>
+                  <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                  <span>Updating Profile...</span>
+                </>
+              ) : (
+                <>
+                  <HiOutlineCheckCircle size={22} />
+                  <span>Save Profile Details</span>
+                </>
+              )}
+            </button>
           </motion.div>
-        </div>
-      </div>
+        </motion.form>
+      </motion.div>
     </div>
   );
 };

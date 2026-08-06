@@ -8,6 +8,7 @@ export const ENDPOINTS = {
   //Admin
   GET_ALL_USERS: "/api/admin/users",
   GET_USER_BY_ID: (user_id) => `/api/admin/users/${user_id}`,
+  GET_ADMIN_DASHBOARD_STATS: "/api/admin/stats",
 
   // Dashboard
   GET_DASHBOARD_STATS: "/api/dashboard",

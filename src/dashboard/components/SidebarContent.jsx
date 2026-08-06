@@ -25,8 +25,8 @@ const SidebarContent = ({
     <div className="flex flex-col h-full bg-white text-[#0B2540] p-5">
       {/* Logo */}
       <div
-        onClick={() => navigate("/")}
-        className="flex items-center gap-2.5 mb-6 cursor-pointer group"
+        // onClick={() => navigate("/")}
+        className="flex items-center gap-2.5 mb-6 group"
       >
         <div className="w-9 h-9 rounded-full bg-[#EFF8FE] border border-[#CFE9FA] flex items-center justify-center overflow-hidden transition-colors duration-300 group-hover:border-[#8FCBF2]">
           {/* <motion.img

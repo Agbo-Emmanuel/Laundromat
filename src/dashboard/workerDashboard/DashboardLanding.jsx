@@ -33,7 +33,7 @@ const DashboardLanding = () => {
     });
 
     toast.success("Logged out successfully");
-    navigate("/login");
+    navigate("/");
   };
 
   const navLinks = [

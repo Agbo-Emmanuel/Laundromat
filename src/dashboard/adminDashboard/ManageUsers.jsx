@@ -14,7 +14,7 @@ import {
   HiOutlineCheckCircle,
 } from "react-icons/hi";
 import { getAllUsers } from "../../services/admin.service";
-import UserProfile from "../fundraiserDashboard/components/UserProfile";
+import UserProfile from "../components/UserProfile";
 import { toast } from "react-toastify";
 
 // ---- helpers -----------------------------------------------------------
