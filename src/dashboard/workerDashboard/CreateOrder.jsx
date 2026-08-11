@@ -14,6 +14,7 @@ import {
   HiOutlineTag,
   HiOutlineChevronDown,
 } from "react-icons/hi";
+import { createOrder } from "../../services/order.service";
 
 const SERVICE_OPTIONS = ["Wash", "Wash & Iron", "Dry Cleaning"];
 
@@ -105,13 +106,24 @@ const CreateOrder = () => {
 
     setIsSubmitting(true);
     try {
-      // Replace with real API call, e.g. POST /orders
-      await new Promise((resolve) => setTimeout(resolve, 900));
-      toast.success("Order created");
+      const payload = {
+        customerName: form.customerName,
+        customerPhone: form.customerPhone,
+        service: form.service,
+        description: form.description,
+        numberOfItems: Number(form.itemCount),
+        price: Number(form.price),
+        pickupDate: form.dueDate,
+      };
+      const response = await createOrder(payload);
+      toast.success(response.message || "Order created successfully!");
       setForm(INITIAL_FORM);
-      navigate("/worker/dashboard/overview");
+      navigate(`/worker/dashboard/orders/${response.data._id}`);
     } catch (err) {
-      toast.error("Couldn't create the order. Try again.");
+      console.log(err);
+      toast.error(
+        err.response?.message || "Couldn't create the order. Try again.",
+      );
     } finally {
       setIsSubmitting(false);
     }
@@ -386,7 +398,7 @@ const CreateOrder = () => {
             <button
               type="submit"
               disabled={isSubmitting}
-              className="flex items-center justify-center gap-2 bg-[#1E88C7] hover:bg-[#187099] disabled:opacity-70 disabled:cursor-not-allowed transition-colors duration-200 text-white text-sm font-semibold px-6 py-2.5 rounded-xl shadow-sm shadow-[#1E88C7]/30 active:scale-[0.98]"
+              className="flex items-center cursor-pointer justify-center gap-2 bg-[#1E88C7] hover:bg-[#187099] disabled:opacity-70 disabled:cursor-not-allowed transition-colors duration-200 text-white text-sm font-semibold px-6 py-2.5 rounded-xl shadow-sm shadow-[#1E88C7]/30 active:scale-[0.98]"
             >
               {isSubmitting ? (
                 <>
@@ -404,7 +416,7 @@ const CreateOrder = () => {
               type="button"
               onClick={() => setForm(INITIAL_FORM)}
               disabled={isSubmitting}
-              className="text-sm font-medium text-[#5B7A93] hover:text-[#0B2540] transition-colors duration-200 px-4 py-2.5"
+              className="text-sm font-medium text-[#5B7A93] cursor-pointer hover:text-[#0B2540] transition-colors duration-200 px-4 py-2.5"
             >
               Clear
             </button>

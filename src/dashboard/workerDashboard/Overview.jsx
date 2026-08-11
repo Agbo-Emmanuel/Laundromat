@@ -11,48 +11,14 @@ import {
 } from "react-icons/hi";
 import { getWorkerDashboardStats } from "../../services/user.service";
 import { getAllOrders } from "../../services/order.service";
+import { toast } from "react-toastify";
 
-// Mock data — replace with real API call (e.g. GET /orders?worker=me&status=pending)
-const MOCK_PENDING_ORDERS = [
-  {
-    id: "ORD-1042",
-    customer: "Amaka Johnson",
-    service: "Wash & Fold",
-    items: 12,
-    dueDate: "2026-08-03",
-    status: "Awaiting Pickup",
-  },
-  {
-    id: "ORD-1041",
-    customer: "Tunde Bakare",
-    service: "Dry Cleaning",
-    items: 5,
-    dueDate: "2026-08-02",
-    status: "In Progress",
-  },
-  {
-    id: "ORD-1039",
-    customer: "Chiamaka Obi",
-    service: "Wash & Iron",
-    items: 8,
-    dueDate: "2026-08-04",
-    status: "Ready for Delivery",
-  },
-  {
-    id: "ORD-1037",
-    customer: "David Eze",
-    service: "Wash & Fold",
-    items: 20,
-    dueDate: "2026-08-02",
-    status: "In Progress",
-  },
-];
-
-const statusStyles = {
-  "Awaiting Pickup": "bg-[#FDF3E4] text-[#9A6413]",
-  "In Progress": "bg-[#E6F1FB] text-[#0C447C]",
-  "Ready for Delivery": "bg-[#E9F7EE] text-[#0F8F5F]",
-};
+const currency = (value) =>
+  Number(value || 0).toLocaleString("en-NG", {
+    style: "currency",
+    currency: "NGN",
+    maximumFractionDigits: 0,
+  });
 
 const containerVariants = {
   hidden: { opacity: 0 },
@@ -69,70 +35,59 @@ const itemVariants = {
 
 const Overview = () => {
   const navigate = useNavigate();
-  const [isLoading, setIsLoading] = useState(true);
+  const [isStatsLoading, setIsStatsLoading] = useState(true);
+  const [isOrdersLoading, setIsOrdersLoading] = useState(true);
   const [stats, setStats] = useState({
     pendingOrders: 0,
     totalOrders: 0,
     completedOrders: 0,
   });
-  const [orders, setOrders] = useState([]);
+  const [pendingOrders, setPendingOrders] = useState([]);
 
   useEffect(() => {
     const fetchDashboardStats = async () => {
-      setIsLoading(true);
+      setIsStatsLoading(true);
       try {
         const response = await getWorkerDashboardStats();
-        setIsLoading(false);
         setStats(response.data);
       } catch (error) {
-        setIsLoading(false);
-        console.log(error);
+        toast.error(error.message || "Couldn't load your stats.");
+      } finally {
+        setIsStatsLoading(false);
       }
     };
     fetchDashboardStats();
   }, []);
 
   useEffect(() => {
-    const fetchAllOrders = async () => {
-      setIsLoading(true);
+    const fetchPendingOrders = async () => {
+      setIsOrdersLoading(true);
       try {
-        const response = await getAllOrders();
-        setIsLoading(false);
-        setOrders(response.data);
+        const response = await getAllOrders("pending");
+        setPendingOrders(response.data ?? []);
       } catch (error) {
-        setIsLoading(false);
-        console.log(error);
+        toast.error(error.message || "Couldn't load pending orders.");
+      } finally {
+        setIsOrdersLoading(false);
       }
     };
-    fetchAllOrders();
+    fetchPendingOrders();
   }, []);
 
   const statCards = [
     {
       label: "Pending orders",
-      value: isLoading ? (
-        <span className="inline-block w-10 h-6 bg-[#EFF8FE] rounded animate-pulse" />
-      ) : (
-        stats.pendingOrders
-      ),
+      value: stats.pendingOrders,
       icon: <HiOutlineClock size={22} />,
     },
     {
       label: "Total orders",
-      value: isLoading ? (
-        <span className="inline-block w-10 h-6 bg-[#EFF8FE] rounded animate-pulse" />
-      ) : (
-        stats.totalOrders
-      ),
+      value: stats.totalOrders,
       icon: <HiOutlineClipboardList size={22} />,
     },
     {
       label: "Completed orders",
-      value: isLoading ? (
-        <span className="inline-block w-10 h-6 bg-[#EFF8FE] rounded animate-pulse" />
-      ) : (
-        stats.completedOrders
-      ),
+      value: stats.completedOrders,
       icon: <HiOutlineCheckCircle size={22} />,
     },
   ];
@@ -180,7 +135,7 @@ const Overview = () => {
             <div>
               <p className="text-xs font-medium text-[#5B7A93]">{stat.label}</p>
               <p className="text-2xl font-bold text-[#0B2540] mt-0.5">
-                {isLoading ? (
+                {isStatsLoading ? (
                   <span className="inline-block w-10 h-6 bg-[#EFF8FE] rounded animate-pulse" />
                 ) : (
                   stat.value
@@ -205,9 +160,19 @@ const Overview = () => {
               Orders that still need action from you.
             </p>
           </div>
+          {!isOrdersLoading && pendingOrders.length > 0 && (
+            <button
+              onClick={() =>
+                navigate("/worker/dashboard/orders?status=pending")
+              }
+              className="text-xs cursor-pointer font-semibold text-[#1E88C7] hover:text-[#187099] transition-colors duration-150"
+            >
+              View all
+            </button>
+          )}
         </div>
 
-        {isLoading ? (
+        {isOrdersLoading ? (
           <div className="p-5 space-y-3">
             {[...Array(4)].map((_, i) => (
               <div
@@ -216,7 +181,7 @@ const Overview = () => {
               />
             ))}
           </div>
-        ) : MOCK_PENDING_ORDERS.length === 0 ? (
+        ) : pendingOrders.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-14 px-5 text-center">
             <div className="w-12 h-12 rounded-full bg-[#EFF8FE] text-[#1E88C7] flex items-center justify-center mb-3">
               <HiOutlineInboxIn size={22} />
@@ -233,57 +198,59 @@ const Overview = () => {
             <table className="w-full text-sm">
               <thead>
                 <tr className="text-left text-xs font-medium text-[#5B7A93] bg-[#F8FBFE]">
-                  <th className="px-5 py-3">Order ID</th>
+                  <th className="px-5 py-3">Order Code</th>
                   <th className="px-5 py-3">Customer</th>
                   <th className="px-5 py-3">Service</th>
                   <th className="px-5 py-3">Items</th>
-                  <th className="px-5 py-3">Due date</th>
-                  <th className="px-5 py-3">Status</th>
+                  <th className="px-5 py-3">Price</th>
+                  <th className="px-5 py-3">Pickup date</th>
                   <th className="px-5 py-3 text-right">Action</th>
                 </tr>
               </thead>
               <tbody>
-                {MOCK_PENDING_ORDERS.map((order, i) => (
+                {pendingOrders.map((order, i) => (
                   <motion.tr
-                    key={order.id}
+                    key={order._id}
                     initial={{ opacity: 0 }}
                     animate={{ opacity: 1 }}
                     transition={{ duration: 0.3, delay: i * 0.05 }}
-                    className="border-t border-[#EEF6FC] hover:bg-[#F8FBFE] transition-colors duration-150"
+                    onClick={() =>
+                      navigate(`/worker/dashboard/orders/${order._id}`)
+                    }
+                    className="border-t border-[#EEF6FC] hover:bg-[#F8FBFE] transition-colors duration-150 cursor-pointer"
                   >
                     <td className="px-5 py-3.5 font-medium text-[#0B2540]">
-                      {order.id}
+                      {order.orderCode}
                     </td>
                     <td className="px-5 py-3.5 text-[#33526A]">
-                      {order.customer}
+                      {order.customerName}
                     </td>
                     <td className="px-5 py-3.5 text-[#33526A]">
                       {order.service}
                     </td>
                     <td className="px-5 py-3.5 text-[#33526A]">
-                      {order.items}
+                      {order.numberOfItems}
+                    </td>
+                    <td className="px-5 py-3.5 text-[#33526A] font-medium">
+                      {currency(order.price)}
                     </td>
                     <td className="px-5 py-3.5 text-[#33526A]">
-                      {new Date(order.dueDate).toLocaleDateString("en-US", {
-                        month: "short",
-                        day: "numeric",
-                      })}
-                    </td>
-                    <td className="px-5 py-3.5">
-                      <span
-                        className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium ${
-                          statusStyles[order.status] ??
-                          "bg-[#F0F4F8] text-[#4C6A80]"
-                        }`}
-                      >
-                        {order.status}
-                      </span>
+                      {order.pickupDate
+                        ? new Date(order.pickupDate).toLocaleDateString(
+                            "en-US",
+                            {
+                              month: "short",
+                              day: "numeric",
+                            },
+                          )
+                        : "—"}
                     </td>
                     <td className="px-5 py-3.5 text-right">
                       <button
-                        onClick={() =>
-                          navigate(`/worker/dashboard/orders/${order.id}`)
-                        }
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          navigate(`/worker/dashboard/orders/${order._id}`);
+                        }}
                         className="inline-flex cursor-pointer items-center gap-1.5 text-[#1E88C7] hover:text-[#187099] text-xs font-semibold px-3 py-1.5 rounded-lg hover:bg-[#EFF8FE] transition-colors duration-150"
                       >
                         <HiOutlineEye size={16} />

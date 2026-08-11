@@ -11,149 +11,41 @@ import {
   HiOutlineRefresh,
   HiOutlineCheckCircle,
   HiOutlineTruck,
-  HiOutlineXCircle,
   HiOutlinePlusCircle,
   HiOutlineX,
 } from "react-icons/hi";
+import { getAllOrders } from "../../services/order.service";
+import { toast } from "react-toastify";
 
-// Mock data — replace with a real API call (e.g. GET /orders?worker=me&page=&status=&q=)
-const MOCK_ORDERS = [
-  {
-    id: "ORD-1042",
-    customer: "Amaka Johnson",
-    service: "Wash & Fold",
-    items: 12,
-    price: 6000,
-    dueDate: "2026-08-03",
-    status: "Pending",
-  },
-  {
-    id: "ORD-1041",
-    customer: "Tunde Bakare",
-    service: "Dry Cleaning",
-    items: 5,
-    price: 8500,
-    dueDate: "2026-08-02",
-    status: "In Progress",
-  },
-  {
-    id: "ORD-1039",
-    customer: "Chiamaka Obi",
-    service: "Wash & Iron",
-    items: 8,
-    price: 5200,
-    dueDate: "2026-08-04",
-    status: "Ready for Pickup",
-  },
-  {
-    id: "ORD-1037",
-    customer: "David Eze",
-    service: "Wash & Fold",
-    items: 20,
-    price: 11000,
-    dueDate: "2026-08-02",
-    status: "In Progress",
-  },
-  {
-    id: "ORD-1034",
-    customer: "Fatima Bello",
-    service: "Dry Cleaning",
-    items: 3,
-    price: 4500,
-    dueDate: "2026-07-30",
-    status: "Completed",
-  },
-  {
-    id: "ORD-1031",
-    customer: "Ifeoma Nwosu",
-    service: "Wash & Iron",
-    items: 10,
-    price: 6800,
-    dueDate: "2026-07-29",
-    status: "Completed",
-  },
-  {
-    id: "ORD-1028",
-    customer: "Segun Adekunle",
-    service: "Wash & Fold",
-    items: 6,
-    price: 3600,
-    dueDate: "2026-07-28",
-    status: "Cancelled",
-  },
-  {
-    id: "ORD-1025",
-    customer: "Grace Umeh",
-    service: "Dry Cleaning",
-    items: 4,
-    price: 5000,
-    dueDate: "2026-07-27",
-    status: "Completed",
-  },
-  {
-    id: "ORD-1023",
-    customer: "Kelechi Nnamdi",
-    service: "Wash & Iron",
-    items: 9,
-    price: 6100,
-    dueDate: "2026-07-26",
-    status: "Completed",
-  },
-  {
-    id: "ORD-1021",
-    customer: "Blessing Okoro",
-    service: "Wash & Fold",
-    items: 15,
-    price: 8200,
-    dueDate: "2026-08-05",
-    status: "Pending",
-  },
-  {
-    id: "ORD-1019",
-    customer: "Emeka Chukwu",
-    service: "Dry Cleaning",
-    items: 2,
-    price: 3200,
-    dueDate: "2026-07-25",
-    status: "Completed",
-  },
-  {
-    id: "ORD-1017",
-    customer: "Halima Yusuf",
-    service: "Wash & Iron",
-    items: 7,
-    price: 4700,
-    dueDate: "2026-08-06",
-    status: "Ready for Pickup",
-  },
-];
-
+// Filter pills — value matches the backend status field exactly
 const STATUS_FILTERS = [
-  "All",
-  "Pending",
-  "In Progress",
-  "Ready for Pickup",
-  "Completed",
-  "Cancelled",
+  { value: "all", label: "All" },
+  { value: "pending", label: "Pending" },
+  { value: "in-progress", label: "In Progress" },
+  { value: "awaiting-pickup", label: "Awaiting Pickup" },
+  { value: "completed", label: "Completed" },
 ];
 
 const STATUS_META = {
-  Pending: { icon: HiOutlineClock, className: "bg-[#FDF3E0] text-[#9A6413]" },
-  "In Progress": {
+  pending: {
+    icon: HiOutlineClock,
+    className: "bg-[#FDF3E0] text-[#9A6413]",
+    label: "Pending",
+  },
+  "in-progress": {
     icon: HiOutlineRefresh,
     className: "bg-[#E6F1FB] text-[#0C447C]",
+    label: "In Progress",
   },
-  "Ready for Pickup": {
+  "awaiting-pickup": {
     icon: HiOutlineTruck,
     className: "bg-[#F1EAFC] text-[#6B3FB8]",
+    label: "Awaiting Pickup",
   },
-  Completed: {
+  completed: {
     icon: HiOutlineCheckCircle,
     className: "bg-[#E9F7EE] text-[#0F8F5F]",
-  },
-  Cancelled: {
-    icon: HiOutlineXCircle,
-    className: "bg-[#FBEAE9] text-[#B23A34]",
+    label: "Completed",
   },
 };
 
@@ -188,6 +80,7 @@ const StatusBadge = ({ status }) => {
   const meta = STATUS_META[status] ?? {
     icon: HiOutlineClock,
     className: "bg-[#F0F4F8] text-[#4C6A80]",
+    label: status ?? "Unknown",
   };
   const Icon = meta.icon;
   return (
@@ -195,7 +88,7 @@ const StatusBadge = ({ status }) => {
       className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium ${meta.className}`}
     >
       <Icon size={13} />
-      {status}
+      {meta.label}
     </span>
   );
 };
@@ -205,16 +98,22 @@ const Orders = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [orders, setOrders] = useState([]);
   const [search, setSearch] = useState("");
-  const [statusFilter, setStatusFilter] = useState("All");
+  const [statusFilter, setStatusFilter] = useState("all");
   const [page, setPage] = useState(1);
 
   useEffect(() => {
-    // Replace with real API call, e.g. GET /orders?worker=me
-    const timer = setTimeout(() => {
-      setOrders(MOCK_ORDERS);
-      setIsLoading(false);
-    }, 500);
-    return () => clearTimeout(timer);
+    const fetchOrders = async () => {
+      setIsLoading(true);
+      try {
+        const response = await getAllOrders();
+        setOrders(response.data ?? []);
+      } catch (error) {
+        toast.error(error.message);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    fetchOrders();
   }, []);
 
   // Reset to page 1 whenever the active filters change
@@ -226,11 +125,12 @@ const Orders = () => {
     const q = search.trim().toLowerCase();
     return orders.filter((order) => {
       const matchesStatus =
-        statusFilter === "All" || order.status === statusFilter;
+        statusFilter === "all" || order.status === statusFilter;
       const matchesSearch =
         !q ||
-        order.id.toLowerCase().includes(q) ||
-        order.customer.toLowerCase().includes(q);
+        order.orderCode?.toLowerCase().includes(q) ||
+        order.customerName?.toLowerCase().includes(q) ||
+        String(order.customerPhone ?? "").includes(q);
       return matchesStatus && matchesSearch;
     });
   }, [orders, search, statusFilter]);
@@ -242,9 +142,9 @@ const Orders = () => {
   );
 
   const statusCounts = useMemo(() => {
-    const counts = { All: orders.length };
-    STATUS_FILTERS.slice(1).forEach((status) => {
-      counts[status] = orders.filter((o) => o.status === status).length;
+    const counts = { all: orders.length };
+    STATUS_FILTERS.slice(1).forEach(({ value }) => {
+      counts[value] = orders.filter((o) => o.status === value).length;
     });
     return counts;
   }, [orders]);
@@ -291,7 +191,7 @@ const Orders = () => {
             type="text"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            placeholder="Search by order ID or customer name"
+            placeholder="Search by order code, customer name, or phone"
             className="w-full rounded-xl border border-[#DCEEFB] bg-white pl-10 pr-9 py-2.5 text-sm text-[#0B2540] placeholder:text-[#9AB4C7] outline-none transition-all duration-200 focus:border-[#1E88C7] focus:ring-4 focus:ring-[#E6F1FB]"
           />
           <AnimatePresence>
@@ -311,25 +211,25 @@ const Orders = () => {
 
         {/* Status pills */}
         <div className="flex flex-wrap gap-2">
-          {STATUS_FILTERS.map((status) => {
-            const isActive = statusFilter === status;
+          {STATUS_FILTERS.map(({ value, label }) => {
+            const isActive = statusFilter === value;
             return (
               <button
-                key={status}
-                onClick={() => setStatusFilter(status)}
+                key={value}
+                onClick={() => setStatusFilter(value)}
                 className={`relative flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-xs font-semibold transition-colors duration-200 cursor-pointer ${
                   isActive
                     ? "bg-[#1E88C7] text-white shadow-sm shadow-[#1E88C7]/30"
                     : "bg-[#F4FAFE] text-[#4C6A80] hover:bg-[#E6F1FB]"
                 }`}
               >
-                {status}
+                {label}
                 <span
                   className={`text-[10px] font-bold px-1.5 py-0.5 rounded-full ${
                     isActive ? "bg-white/20" : "bg-white text-[#7C99AF]"
                   }`}
                 >
-                  {statusCounts[status] ?? 0}
+                  {statusCounts[value] ?? 0}
                 </span>
               </button>
             );
@@ -360,15 +260,15 @@ const Orders = () => {
               No orders found
             </p>
             <p className="text-xs text-[#5B7A93] mt-1 max-w-xs">
-              {search || statusFilter !== "All"
+              {search || statusFilter !== "all"
                 ? "Try a different search term or status filter."
                 : "Orders you create will show up here."}
             </p>
-            {(search || statusFilter !== "All") && (
+            {(search || statusFilter !== "all") && (
               <button
                 onClick={() => {
                   setSearch("");
-                  setStatusFilter("All");
+                  setStatusFilter("all");
                 }}
                 className="mt-4 text-xs font-semibold text-[#1E88C7] hover:text-[#187099] transition-colors duration-150"
               >
@@ -382,12 +282,12 @@ const Orders = () => {
               <table className="w-full text-sm">
                 <thead>
                   <tr className="text-left text-xs font-medium text-[#5B7A93] bg-[#F8FBFE]">
-                    <th className="px-5 py-3">Order ID</th>
+                    <th className="px-5 py-3">Order Code</th>
                     <th className="px-5 py-3">Customer</th>
                     <th className="px-5 py-3">Service</th>
                     <th className="px-5 py-3">Items</th>
                     <th className="px-5 py-3">Price</th>
-                    <th className="px-5 py-3">Due date</th>
+                    <th className="px-5 py-3">Pickup date</th>
                     <th className="px-5 py-3">Status</th>
                     <th className="px-5 py-3 text-right">Action</th>
                   </tr>
@@ -396,34 +296,37 @@ const Orders = () => {
                   <AnimatePresence mode="popLayout">
                     {paginatedOrders.map((order, i) => (
                       <motion.tr
-                        key={order.id}
+                        key={order._id}
                         layout
                         initial={{ opacity: 0 }}
                         animate={{ opacity: 1 }}
                         exit={{ opacity: 0 }}
                         transition={{ duration: 0.25, delay: i * 0.03 }}
                         onClick={() =>
-                          navigate(`/worker/dashboard/orders/${order.id}`)
+                          navigate(`/worker/dashboard/orders/${order._id}`)
                         }
                         className="border-t border-[#EEF6FC] hover:bg-[#F8FBFE] transition-colors duration-150 cursor-pointer"
                       >
                         <td className="px-5 py-3.5 font-medium text-[#0B2540]">
-                          {order.id}
+                          {order.orderCode}
                         </td>
                         <td className="px-5 py-3.5 text-[#33526A]">
-                          {order.customer}
+                          <div>{order.customerName}</div>
+                          <div className="text-xs text-[#9AB4C7]">
+                            {order.customerPhone}
+                          </div>
                         </td>
                         <td className="px-5 py-3.5 text-[#33526A]">
                           {order.service}
                         </td>
                         <td className="px-5 py-3.5 text-[#33526A]">
-                          {order.items}
+                          {order.numberOfItems}
                         </td>
                         <td className="px-5 py-3.5 text-[#33526A] font-medium">
                           {currency(order.price)}
                         </td>
                         <td className="px-5 py-3.5 text-[#33526A]">
-                          {formatDate(order.dueDate)}
+                          {formatDate(order.pickupDate)}
                         </td>
                         <td className="px-5 py-3.5">
                           <StatusBadge status={order.status} />
@@ -432,7 +335,7 @@ const Orders = () => {
                           <button
                             onClick={(e) => {
                               e.stopPropagation();
-                              navigate(`/worker/dashboard/orders/${order.id}`);
+                              navigate(`/worker/dashboard/orders/${order._id}`);
                             }}
                             className="inline-flex cursor-pointer items-center gap-1.5 text-[#1E88C7] hover:text-[#187099] text-xs font-semibold px-3 py-1.5 rounded-lg hover:bg-[#EFF8FE] transition-colors duration-150"
                           >

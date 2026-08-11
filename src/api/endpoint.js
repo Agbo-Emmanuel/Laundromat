@@ -17,5 +17,8 @@ export const ENDPOINTS = {
   GET_WORKER_DASHBOARD_STATS: "/api/worker/dashboard-stats",
 
   //orders
-  GET_ALL_ORDERS: "/api/get-all-orders",
+  CREATE_ORDER: "/api/create-order",
+  GET_ALL_ORDERS: "/api/orders",
+  GET_ORDER: (orderId) => `/api/orders/${orderId}`,
+  UPDATE_ORDER_STATUS: (orderId) => `/api/orders/${orderId}`,
 };

@@ -15,74 +15,49 @@ import {
   HiOutlineRefresh,
   HiOutlineCheckCircle,
   HiOutlineTruck,
-  HiOutlineXCircle,
   HiOutlineChevronRight,
   HiOutlineHashtag,
 } from "react-icons/hi";
+import { getOrder, updateOrderStatus } from "../../services/order.service";
 
-// ---- Status configuration ----------------------------------------------
+// ---- Status configuration -------------------------------------------
+// Values match the backend exactly: pending, in-progress, awaiting-pickup, completed
 
-const STATUS_FLOW = ["Pending", "In Progress", "Ready for Pickup", "Completed"];
+const STATUS_FLOW = ["pending", "in-progress", "awaiting-pickup", "completed"];
 
 const STATUS_META = {
-  Pending: {
+  pending: {
+    label: "Pending",
     icon: HiOutlineClock,
     color: "#B7791F",
     bg: "#FDF3E0",
     border: "#F3DCA6",
     description: "Order logged. Not started yet.",
   },
-  "In Progress": {
+  "in-progress": {
+    label: "In Progress",
     icon: HiOutlineRefresh,
     color: "#1E88C7",
     bg: "#E6F1FB",
     border: "#BFDFF6",
     description: "Being washed, ironed, or cleaned.",
   },
-  "Ready for Pickup": {
+  "awaiting-pickup": {
+    label: "Awaiting Pickup",
     icon: HiOutlineTruck,
     color: "#7C4FD1",
     bg: "#F1EAFC",
     border: "#DCC9F7",
     description: "Finished. Waiting for the customer.",
   },
-  Completed: {
+  completed: {
+    label: "Completed",
     icon: HiOutlineCheckCircle,
     color: "#1E9E62",
     bg: "#E5F7EE",
     border: "#BCE9D3",
     description: "Picked up and closed out.",
   },
-  Cancelled: {
-    icon: HiOutlineXCircle,
-    color: "#C4433D",
-    bg: "#FBEAE9",
-    border: "#F3C7C4",
-    description: "Order cancelled.",
-  },
-};
-
-// ---- Mock data (swap for a real GET /orders/:id) ------------------------
-
-const MOCK_ORDER = {
-  id: "ORD-10482",
-  customerName: "Amaka Johnson",
-  customerPhone: "+234 801 234 5678",
-  service: "Wash & Iron",
-  description: "3 shirts, 2 trousers, 1 duvet — wash and iron",
-  itemCount: 6,
-  price: 5000,
-  dueDate: (() => {
-    const d = new Date();
-    d.setDate(d.getDate() + 2);
-    return d.toISOString().split("T")[0];
-  })(),
-  status: "In Progress",
-  createdAt: (() => {
-    const d = new Date();
-    d.setDate(d.getDate() - 1);
-    return d.toISOString();
-  })(),
 };
 
 const containerVariants = {
@@ -114,60 +89,50 @@ const formatDate = (value, opts) =>
 
 const OrderDetails = () => {
   const navigate = useNavigate();
-  const { order_id } = useParams();
+  const { orderId } = useParams();
 
   const [order, setOrder] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isUpdating, setIsUpdating] = useState(false);
   const [pendingStatus, setPendingStatus] = useState(null); // status awaiting confirmation
-  const [showCancelConfirm, setShowCancelConfirm] = useState(false);
 
   useEffect(() => {
-    let active = true;
-    setIsLoading(true);
-
-    // Replace with real API call, e.g. GET /orders/:order_id
-    const timer = setTimeout(() => {
-      if (!active) return;
-      setOrder({ ...MOCK_ORDER, id: order_id || MOCK_ORDER.id });
-      setIsLoading(false);
-    }, 600);
-
-    return () => {
-      active = false;
-      clearTimeout(timer);
+    const fetchOrder = async () => {
+      setIsLoading(true);
+      try {
+        const response = await getOrder(orderId);
+        setOrder(response.data);
+      } catch (error) {
+        toast.error(error.message || "Couldn't load this order.");
+      } finally {
+        setIsLoading(false);
+      }
     };
-  }, [order_id]);
+    fetchOrder();
+  }, [orderId]);
 
   const currentStepIndex = useMemo(() => {
     if (!order) return -1;
     return STATUS_FLOW.indexOf(order.status);
   }, [order]);
 
-  const isCancelled = order?.status === "Cancelled";
-  const isCompleted = order?.status === "Completed";
+  const isCompleted = order?.status === "completed";
   const nextStatus =
-    !isCancelled &&
-    currentStepIndex > -1 &&
-    currentStepIndex < STATUS_FLOW.length - 1
+    currentStepIndex > -1 && currentStepIndex < STATUS_FLOW.length - 1
       ? STATUS_FLOW[currentStepIndex + 1]
       : null;
 
   const commitStatusChange = async (status) => {
     setIsUpdating(true);
     try {
-      // Replace with real API call, e.g. PATCH /orders/:id { status }
-      await new Promise((resolve) => setTimeout(resolve, 700));
+      await updateOrderStatus(order._id, status);
       setOrder((prev) => ({ ...prev, status }));
-      toast.success(
-        status === "Cancelled" ? "Order cancelled" : `Marked as "${status}"`,
-      );
+      toast.success(`Marked as "${STATUS_META[status].label}"`);
     } catch (err) {
-      toast.error("Couldn't update the order. Try again.");
+      toast.error(err.message || "Couldn't update the order. Try again.");
     } finally {
       setIsUpdating(false);
       setPendingStatus(null);
-      setShowCancelConfirm(false);
     }
   };
 
@@ -189,10 +154,29 @@ const OrderDetails = () => {
     );
   }
 
-  if (!order) return null;
+  if (!order) {
+    return (
+      <div className="flex flex-col items-center justify-center py-20 text-center">
+        <p className="text-sm font-semibold text-[#0B2540]">Order not found</p>
+        <p className="text-xs text-[#5B7A93] mt-1">
+          It may have been removed, or the link is incorrect.
+        </p>
+        <button
+          onClick={() => navigate("/worker/dashboard/orders")}
+          className="mt-4 text-xs font-semibold text-[#1E88C7] hover:text-[#187099] transition-colors duration-150"
+        >
+          Back to orders
+        </button>
+      </div>
+    );
+  }
 
-  const statusMeta = STATUS_META[order.status] ?? STATUS_META.Pending;
+  const statusMeta = STATUS_META[order.status] ?? STATUS_META.pending;
   const StatusIcon = statusMeta.icon;
+  const whatsappNumber = String(order.customerPhone ?? "").replace(
+    /[^\d]/g,
+    "",
+  );
 
   return (
     <motion.div
@@ -221,7 +205,7 @@ const OrderDetails = () => {
             </div>
             <p className="flex items-center gap-1 text-sm text-[#5B7A93] mt-1">
               <HiOutlineHashtag size={14} />
-              {order.id}
+              {order.orderCode}
               <span className="mx-1 text-[#C4D9E9]">•</span>
               Logged {formatDate(order.createdAt)}
             </p>
@@ -237,7 +221,7 @@ const OrderDetails = () => {
           }}
         >
           <StatusIcon size={14} />
-          {order.status}
+          {statusMeta.label}
         </span>
       </motion.div>
 
@@ -261,7 +245,9 @@ const OrderDetails = () => {
                 icon={HiOutlinePhone}
                 label="WhatsApp"
                 value={order.customerPhone}
-                href={`https://wa.me/${order.customerPhone.replace(/[^\d]/g, "")}`}
+                href={
+                  whatsappNumber ? `https://wa.me/${whatsappNumber}` : undefined
+                }
               />
               <DetailRow
                 icon={HiOutlineTag}
@@ -271,7 +257,7 @@ const OrderDetails = () => {
               <DetailRow
                 icon={HiOutlineCube}
                 label="No. of items"
-                value={order.itemCount}
+                value={order.numberOfItems}
               />
               <DetailRow
                 icon={HiOutlineCurrencyDollar}
@@ -281,8 +267,8 @@ const OrderDetails = () => {
               />
               <DetailRow
                 icon={HiOutlineCalendar}
-                label="Due date"
-                value={formatDate(order.dueDate)}
+                label="Pickup date"
+                value={formatDate(order.pickupDate)}
               />
             </div>
           </div>
@@ -316,8 +302,8 @@ const OrderDetails = () => {
               {STATUS_FLOW.map((step, i) => {
                 const meta = STATUS_META[step];
                 const StepIcon = meta.icon;
-                const isDone = !isCancelled && i < currentStepIndex;
-                const isCurrent = !isCancelled && i === currentStepIndex;
+                const isDone = i < currentStepIndex;
+                const isCurrent = i === currentStepIndex;
                 const isLast = i === STATUS_FLOW.length - 1;
 
                 return (
@@ -366,52 +352,29 @@ const OrderDetails = () => {
                               : "text-[#9AB4C7]"
                         }`}
                       >
-                        {step}
+                        {meta.label}
                       </p>
                     </div>
                   </div>
                 );
               })}
             </div>
-
-            {isCancelled && (
-              <div
-                className="mt-2 flex items-center gap-2 text-xs font-semibold px-3 py-2 rounded-lg border"
-                style={{
-                  color: STATUS_META.Cancelled.color,
-                  backgroundColor: STATUS_META.Cancelled.bg,
-                  borderColor: STATUS_META.Cancelled.border,
-                }}
-              >
-                <HiOutlineXCircle size={14} />
-                This order was cancelled
-              </div>
-            )}
           </div>
 
           {/* Actions */}
-          {!isCancelled && !isCompleted && (
-            <div className="pt-5 border-t border-[#DCEEFB] space-y-2.5">
-              {nextStatus && (
-                <button
-                  onClick={() => setPendingStatus(nextStatus)}
-                  disabled={isUpdating}
-                  className="w-full flex cursor-pointer items-center justify-center gap-2 bg-[#1E88C7] hover:bg-[#187099] disabled:opacity-70 disabled:cursor-not-allowed transition-colors duration-200 text-white text-sm font-semibold px-5 py-2.5 rounded-xl shadow-sm shadow-[#1E88C7]/30 active:scale-[0.98]"
-                >
-                  {isUpdating && pendingStatus === nextStatus ? (
-                    <span className="w-4 h-4 border-2 border-white/40 border-t-white rounded-full animate-spin" />
-                  ) : (
-                    <HiOutlineChevronRight size={18} />
-                  )}
-                  Mark as "{nextStatus}"
-                </button>
-              )}
+          {!isCompleted && nextStatus && (
+            <div className="pt-5 border-t border-[#DCEEFB]">
               <button
-                onClick={() => setShowCancelConfirm(true)}
+                onClick={() => setPendingStatus(nextStatus)}
                 disabled={isUpdating}
-                className="w-full text-sm cursor-pointer font-medium text-[#C4433D] hover:bg-[#FBEAE9] disabled:opacity-60 transition-colors duration-200 px-5 py-2.5 rounded-xl"
+                className="w-full flex cursor-pointer items-center justify-center gap-2 bg-[#1E88C7] hover:bg-[#187099] disabled:opacity-70 disabled:cursor-not-allowed transition-colors duration-200 text-white text-sm font-semibold px-5 py-2.5 rounded-xl shadow-sm shadow-[#1E88C7]/30 active:scale-[0.98]"
               >
-                Cancel order
+                {isUpdating && pendingStatus === nextStatus ? (
+                  <span className="w-4 h-4 border-2 border-white/40 border-t-white rounded-full animate-spin" />
+                ) : (
+                  <HiOutlineChevronRight size={18} />
+                )}
+                Mark as "{STATUS_META[nextStatus].label}"
               </button>
             </div>
           )}
@@ -430,24 +393,12 @@ const OrderDetails = () => {
       {/* Confirm: advance status */}
       <ConfirmDialog
         open={!!pendingStatus}
-        title={`Mark as "${pendingStatus}"?`}
+        title={`Mark as "${pendingStatus ? STATUS_META[pendingStatus].label : ""}"?`}
         body={`This updates the order status for ${order.customerName}. They will be notified automatically.`}
         confirmLabel="Confirm"
         isLoading={isUpdating}
         onCancel={() => setPendingStatus(null)}
         onConfirm={() => commitStatusChange(pendingStatus)}
-      />
-
-      {/* Confirm: cancel order */}
-      <ConfirmDialog
-        open={showCancelConfirm}
-        title="Cancel this order?"
-        body="This can't be undone. The order will be marked as cancelled."
-        confirmLabel="Cancel order"
-        destructive
-        isLoading={isUpdating}
-        onCancel={() => setShowCancelConfirm(false)}
-        onConfirm={() => commitStatusChange("Cancelled")}
       />
     </motion.div>
   );
@@ -486,7 +437,6 @@ const ConfirmDialog = ({
   onConfirm,
   onCancel,
   isLoading,
-  destructive = false,
 }) => (
   <AnimatePresence>
     {open && (
@@ -518,11 +468,7 @@ const ConfirmDialog = ({
             <button
               onClick={onConfirm}
               disabled={isLoading}
-              className={`flex items-center gap-2 cursor-pointer text-sm font-semibold px-4 py-2 rounded-xl text-white transition-colors duration-200 disabled:opacity-70 active:scale-[0.98] ${
-                destructive
-                  ? "bg-[#D9615C] hover:bg-[#C4433D]"
-                  : "bg-[#1E88C7] hover:bg-[#187099]"
-              }`}
+              className="flex items-center gap-2 cursor-pointer text-sm font-semibold px-4 py-2 rounded-xl text-white transition-colors duration-200 disabled:opacity-70 active:scale-[0.98] bg-[#1E88C7] hover:bg-[#187099]"
             >
               {isLoading && (
                 <span className="w-3.5 h-3.5 border-2 border-white/40 border-t-white rounded-full animate-spin" />
