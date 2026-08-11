@@ -1,71 +1,56 @@
-import React, { useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
-import {
-  HiOutlineEye,
-  HiOutlineEyeOff,
-  HiArrowRight,
-  HiOutlineShieldCheck,
-} from "react-icons/hi";
+import { HiOutlineEye, HiOutlineEyeOff, HiArrowRight } from "react-icons/hi";
 import { toast } from "react-toastify";
-import { useCookies } from "react-cookie";
-import { login } from "../services/auth.service";
+import { register } from "../services/auth.service";
 
-const Login = () => {
+const Register = () => {
   const navigate = useNavigate();
-  const [, setCookie] = useCookies(["userData", "token"]);
   const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [formData, setFormData] = useState({
+    fullName: "",
     email: "",
+    phoneNumber: "",
     password: "",
-    rememberMe: false,
+    confirmPassword: "",
   });
 
   const handleChange = (e) => {
-    const { name, value, type, checked } = e.target;
+    const { name, value } = e.target;
     setFormData((prev) => ({
       ...prev,
-      [name]: type === "checkbox" ? checked : value,
+      [name]: value,
     }));
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!formData.email) return toast.error("Your Email is required");
+    if (!formData.fullName) return toast.error("Full Name is required");
+    if (!formData.email) return toast.error("Email is required");
+    if (!formData.phoneNumber) return toast.error("Phone Number is required");
     if (!formData.password) return toast.error("Password is required");
+    if (!formData.confirmPassword)
+      return toast.error("Confirm Password is required");
+    if (formData.password !== formData.confirmPassword)
+      return toast.error("Passwords do not match");
 
     try {
       setLoading(true);
-      const response = await login(formData);
-      toast.success("Login Successful");
-
-      // Cookie options: if rememberMe is checked, persist for 7 days; otherwise session cookie
-      const cookieOptions = formData.rememberMe
-        ? { path: "/", maxAge: 7 * 24 * 60 * 60 } // 7 days in seconds
-        : { path: "/" }; // session cookie — deleted when browser closes
-
-      setCookie("userData", response?.user, cookieOptions);
-      setCookie("token", response?.token, cookieOptions);
-
-      const userRole = response?.user?.role;
-
-      // Small delay so the success toast is visible before we navigate away —
-      // keeps the transition from feeling abrupt.
+      await register(formData);
+      toast.success("Registration Successfull");
       setTimeout(() => {
-        if (userRole == "worker") {
-          navigate("/worker/dashboard/overview");
-        } else {
-          navigate("/admin/dashboard/overview");
-        }
-      }, 400);
+        navigate("/login");
+      }, 500);
     } catch (error) {
       setLoading(false);
-      console.log("login error", error);
+      console.log("register error", error);
       if (error.message === "Network Error") {
         toast.error("Network Error, please check your internet connection");
       } else {
-        toast.error(error?.response?.message || "Login failed");
+        toast.error(error?.response?.data?.detail || "register failed");
       }
     }
   };
@@ -120,15 +105,31 @@ const Login = () => {
         className="w-full max-w-md bg-white rounded-2xl border border-gray-100 shadow-[0_1px_3px_rgba(0,0,0,0.04),0_8px_24px_rgba(0,0,0,0.04)] p-8 sm:p-10"
       >
         <div className="mb-8">
-          <h1 className="text-2xl font-bold text-gray-900 mb-1.5">
-            Welcome back
-          </h1>
+          <h1 className="text-2xl font-bold text-gray-900 mb-1.5">Register</h1>
           <p className="text-[#187099]/90 text-sm">
-            Sign in to manage your Laundry.
+            Register to manage your Laundry.
           </p>
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-5">
+          <motion.div
+            variants={fieldVariants}
+            custom={0}
+            initial="hidden"
+            animate="visible"
+          >
+            <label className={labelClasses}>Full Name</label>
+            <input
+              type="text"
+              name="fullName"
+              placeholder="Your full name"
+              value={formData.fullName}
+              onChange={handleChange}
+              className={inputClasses}
+              required
+            />
+          </motion.div>
+
           <motion.div
             variants={fieldVariants}
             custom={0}
@@ -150,6 +151,24 @@ const Login = () => {
 
           <motion.div
             variants={fieldVariants}
+            custom={0}
+            initial="hidden"
+            animate="visible"
+          >
+            <label className={labelClasses}>Phone Number</label>
+            <input
+              type="text"
+              name="phoneNumber"
+              placeholder="090xxxxxxxx"
+              value={formData.phoneNumber}
+              onChange={handleChange}
+              className={inputClasses}
+              required
+            />
+          </motion.div>
+
+          <motion.div
+            variants={fieldVariants}
             custom={1}
             initial="hidden"
             animate="visible"
@@ -158,12 +177,6 @@ const Login = () => {
               <label className="text-gray-900 text-sm font-semibold">
                 Password
               </label>
-              <Link
-                to="/forgot-password"
-                className="text-[#1E88C7] text-sm font-medium hover:text-[#187099] transition-colors"
-              >
-                Forgot password?
-              </Link>
             </div>
             <div className="relative">
               <input
@@ -190,23 +203,43 @@ const Login = () => {
               </button>
             </div>
           </motion.div>
-
           <motion.div
             variants={fieldVariants}
-            custom={2}
+            custom={1}
             initial="hidden"
             animate="visible"
           >
-            <label className="flex items-center gap-2 text-gray-500 text-sm cursor-pointer w-fit">
+            <div className="flex items-center justify-between mb-2">
+              <label className="text-gray-900 text-sm font-semibold">
+                Confirm Password
+              </label>
+            </div>
+            <div className="relative">
               <input
-                type="checkbox"
-                name="rememberMe"
-                checked={formData.rememberMe}
+                type={showConfirmPassword ? "text" : "password"}
+                name="confirmPassword"
+                placeholder="Your password"
+                value={formData.confirmPassword}
                 onChange={handleChange}
-                className="w-4 h-4 rounded border-gray-300 text-emerald-700 focus:ring-emerald-700/40"
+                className={`${inputClasses} pr-11`}
+                autoComplete="current-password"
+                required
               />
-              Remember me
-            </label>
+              <button
+                type="button"
+                onClick={() => setShowConfirmPassword((prev) => !prev)}
+                className="absolute right-3.5 top-1/2 -translate-y-1/2 text-gray-400 hover:text-emerald-700 transition-colors"
+                aria-label={
+                  showConfirmPassword ? "Hide password" : "Show password"
+                }
+              >
+                {showConfirmPassword ? (
+                  <HiOutlineEyeOff size={19} />
+                ) : (
+                  <HiOutlineEye size={19} />
+                )}
+              </button>
+            </div>
           </motion.div>
 
           <motion.div
@@ -228,7 +261,7 @@ const Login = () => {
                 <span className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
               ) : (
                 <>
-                  Sign in
+                  Register
                   <HiArrowRight size={18} />
                 </>
               )}
@@ -256,4 +289,4 @@ const Login = () => {
   );
 };
 
-export default Login;
+export default Register;

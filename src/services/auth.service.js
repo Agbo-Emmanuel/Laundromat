@@ -1,6 +1,11 @@
 import { api } from "../api/api";
 import { ENDPOINTS } from "../api/endpoint";
 
+export const register = async (payload) => {
+  const response = await api.post(ENDPOINTS.REGISTER, payload);
+  return response.data;
+};
+
 export const login = async (payload) => {
   const response = await api.post(ENDPOINTS.LOGIN, payload);
   return response.data;

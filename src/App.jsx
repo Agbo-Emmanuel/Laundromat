@@ -14,6 +14,8 @@ import OrderDetails from "./dashboard/workerDashboard/OrderDetails";
 import AdminDashboardLanding from "./dashboard/adminDashboard/AdminDashboardLanding";
 import AdminOverview from "./dashboard/adminDashboard/AdminOverview";
 import ManageUsers from "./dashboard/adminDashboard/ManageUsers";
+import Register from "./auth/Register";
+import Home from "./auth/Home";
 
 const App = () => {
   return (
@@ -21,7 +23,9 @@ const App = () => {
       <ScrollToTop />
       <ToastContainer />
       <Routes>
-        <Route path="/" element={<Login />} />
+        <Route path="/" element={<Home />} />
+        <Route path="/login" element={<Login />} />
+        <Route path="/register" element={<Register />} />
         <Route path="/forgot-password" element={<ForgotPassword />} />
         <Route path="/reset-password" element={<ResetPassword />} />
 

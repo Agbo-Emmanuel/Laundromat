@@ -52,11 +52,11 @@ const DashboardLanding = () => {
       label: "View Orders",
       icon: <HiOutlineClipboardDocumentList size={20} />,
     },
-    {
-      to: "/worker/dashboard/profile",
-      label: "Profile",
-      icon: <HiOutlineUser size={20} />,
-    },
+    // {
+    //   to: "/worker/dashboard/profile",
+    //   label: "Profile",
+    //   icon: <HiOutlineUser size={20} />,
+    // },
   ];
 
   const bottomLinks = [

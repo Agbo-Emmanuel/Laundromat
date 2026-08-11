@@ -9,6 +9,8 @@ import {
   HiOutlineEye,
   HiOutlineInboxIn,
 } from "react-icons/hi";
+import { getWorkerDashboardStats } from "../../services/user.service";
+import { getAllOrders } from "../../services/order.service";
 
 // Mock data — replace with real API call (e.g. GET /orders?worker=me&status=pending)
 const MOCK_PENDING_ORDERS = [
@@ -46,12 +48,6 @@ const MOCK_PENDING_ORDERS = [
   },
 ];
 
-const STATS = {
-  totalPending: MOCK_PENDING_ORDERS.length,
-  totalOrders: 86,
-  totalCompleted: 79,
-};
-
 const statusStyles = {
   "Awaiting Pickup": "bg-[#FDF3E4] text-[#9A6413]",
   "In Progress": "bg-[#E6F1FB] text-[#0C447C]",
@@ -74,26 +70,69 @@ const itemVariants = {
 const Overview = () => {
   const navigate = useNavigate();
   const [isLoading, setIsLoading] = useState(true);
+  const [stats, setStats] = useState({
+    pendingOrders: 0,
+    totalOrders: 0,
+    completedOrders: 0,
+  });
+  const [orders, setOrders] = useState([]);
 
   useEffect(() => {
-    const timer = setTimeout(() => setIsLoading(false), 500);
-    return () => clearTimeout(timer);
+    const fetchDashboardStats = async () => {
+      setIsLoading(true);
+      try {
+        const response = await getWorkerDashboardStats();
+        setIsLoading(false);
+        setStats(response.data);
+      } catch (error) {
+        setIsLoading(false);
+        console.log(error);
+      }
+    };
+    fetchDashboardStats();
+  }, []);
+
+  useEffect(() => {
+    const fetchAllOrders = async () => {
+      setIsLoading(true);
+      try {
+        const response = await getAllOrders();
+        setIsLoading(false);
+        setOrders(response.data);
+      } catch (error) {
+        setIsLoading(false);
+        console.log(error);
+      }
+    };
+    fetchAllOrders();
   }, []);
 
   const statCards = [
     {
       label: "Pending orders",
-      value: STATS.totalPending,
+      value: isLoading ? (
+        <span className="inline-block w-10 h-6 bg-[#EFF8FE] rounded animate-pulse" />
+      ) : (
+        stats.pendingOrders
+      ),
       icon: <HiOutlineClock size={22} />,
     },
     {
       label: "Total orders",
-      value: STATS.totalOrders,
+      value: isLoading ? (
+        <span className="inline-block w-10 h-6 bg-[#EFF8FE] rounded animate-pulse" />
+      ) : (
+        stats.totalOrders
+      ),
       icon: <HiOutlineClipboardList size={22} />,
     },
     {
-      label: "Completed by you",
-      value: STATS.totalCompleted,
+      label: "Completed orders",
+      value: isLoading ? (
+        <span className="inline-block w-10 h-6 bg-[#EFF8FE] rounded animate-pulse" />
+      ) : (
+        stats.completedOrders
+      ),
       icon: <HiOutlineCheckCircle size={22} />,
     },
   ];
