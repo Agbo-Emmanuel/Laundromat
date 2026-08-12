@@ -162,9 +162,7 @@ const Overview = () => {
           </div>
           {!isOrdersLoading && pendingOrders.length > 0 && (
             <button
-              onClick={() =>
-                navigate("/worker/dashboard/orders?status=pending")
-              }
+              onClick={() => navigate("/worker/dashboard/orders")}
               className="text-xs cursor-pointer font-semibold text-[#1E88C7] hover:text-[#187099] transition-colors duration-150"
             >
               View all

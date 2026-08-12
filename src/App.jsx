@@ -16,6 +16,7 @@ import AdminOverview from "./dashboard/adminDashboard/AdminOverview";
 import ManageUsers from "./dashboard/adminDashboard/ManageUsers";
 import Register from "./auth/Register";
 import Home from "./auth/Home";
+import ManageOrders from "./dashboard/adminDashboard/ManageOrders";
 
 const App = () => {
   return (
@@ -40,6 +41,7 @@ const App = () => {
         <Route path="/admin/dashboard" element={<AdminDashboardLanding />}>
           <Route path="overview" element={<AdminOverview />} />
           <Route path="users" element={<ManageUsers />} />
+          <Route path="orders" element={<ManageOrders />} />
         </Route>
       </Routes>
     </BrowserRouter>
