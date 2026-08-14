@@ -1,23 +1,10 @@
 import { motion } from "framer-motion";
 import {
-  AreaChart,
-  Area,
-  XAxis,
-  YAxis,
-  Tooltip,
-  ResponsiveContainer,
-  CartesianGrid,
-  PieChart,
-  Pie,
-  Cell,
-} from "recharts";
-import {
   HiOutlineClipboardList,
   HiOutlineUserGroup,
   HiOutlineClock,
   HiOutlineCheckCircle,
   HiOutlineCash,
-  HiOutlineReceiptTax,
   HiOutlineArrowRight,
   HiOutlineEye,
   HiOutlineInboxIn,
@@ -25,6 +12,8 @@ import {
   HiOutlineTruck,
 } from "react-icons/hi";
 import StatCard from "../components/StatCard";
+import RevenueTrendCard from "../components/RevenueTrendCard";
+import StatusBreakdownCard from "../components/StatusBreakdownCard";
 import { useEffect, useState } from "react";
 import { getAdminDashboardStats } from "../../services/admin.service";
 import { formatMoney } from "../../utils/formatMoney";
@@ -34,13 +23,6 @@ import { useNavigate } from "react-router-dom";
 import { formatDate } from "../../utils/formatDate";
 
 const BRAND = "#1E88C7";
-
-const STATUS_COLORS = {
-  Pending: "#1E88C7",
-  "In Progress": "#63B3D9",
-  Completed: "#0F5C82",
-  Cancelled: "#CBD5E1",
-};
 
 const STATUS_META = {
   pending: {
@@ -165,7 +147,8 @@ const AdminOverview = () => {
     fetchRecentOrders();
   }, []);
 
-  const revenueTrend = stats?.revenueTrend || [];
+  // revenueTrend is an object shaped { monthly: [...], weekly: [...] }
+  const revenueTrend = stats?.revenueTrend || { monthly: [], weekly: [] };
   const orderStatusBreakdown = stats?.orderStatusBreakdown || [];
 
   return (
@@ -246,12 +229,12 @@ const AdminOverview = () => {
               value={formatMoney(stats?.totalBalance) || 0}
               title="Total Balance"
             />
-            {/* <StatCard
-              icon={<HiOutlineReceiptTax size={24} color={BRAND} />}
-              subtext="Platform commission"
-              value={formatMoney(stats?.total_commission) || 0}
-              title="Total Commission"
-            /> */}
+            <StatCard
+              icon={<HiOutlineCash size={24} color={BRAND} />}
+              subtext="Pending Amount"
+              value={formatMoney(stats?.pendingAmounts) || 0}
+              title="Pending Amounts"
+            />
           </motion.div>
 
           {/* Revenue + Order Status */}
@@ -259,128 +242,11 @@ const AdminOverview = () => {
             variants={itemVariants}
             className="grid grid-cols-1 lg:grid-cols-3 gap-4"
           >
-            {/* Revenue Trend */}
-            <div className="lg:col-span-2 bg-white border border-gray-200 rounded-2xl p-6">
-              <SectionHeader eyebrow="Revenue" title="Revenue Trend" />
-              {revenueTrend.length > 0 ? (
-                <ResponsiveContainer width="100%" height={240}>
-                  <AreaChart data={revenueTrend}>
-                    <defs>
-                      <linearGradient
-                        id="revenueFill"
-                        x1="0"
-                        y1="0"
-                        x2="0"
-                        y2="1"
-                      >
-                        <stop
-                          offset="0%"
-                          stopColor={BRAND}
-                          stopOpacity={0.25}
-                        />
-                        <stop offset="100%" stopColor={BRAND} stopOpacity={0} />
-                      </linearGradient>
-                    </defs>
-                    <CartesianGrid
-                      strokeDasharray="3 3"
-                      vertical={false}
-                      stroke="#F1F5F9"
-                    />
-                    <XAxis
-                      dataKey="label"
-                      tick={{ fontSize: 12, fill: "#94A3B8" }}
-                      axisLine={false}
-                      tickLine={false}
-                    />
-                    <YAxis
-                      tick={{ fontSize: 12, fill: "#94A3B8" }}
-                      axisLine={false}
-                      tickLine={false}
-                    />
-                    <Tooltip
-                      formatter={(value) => formatMoney(value)}
-                      contentStyle={{
-                        borderRadius: 12,
-                        border: "1px solid #E5E7EB",
-                        fontSize: 13,
-                      }}
-                    />
-                    <Area
-                      type="monotone"
-                      dataKey="revenue"
-                      stroke={BRAND}
-                      strokeWidth={2.5}
-                      fill="url(#revenueFill)"
-                    />
-                  </AreaChart>
-                </ResponsiveContainer>
-              ) : (
-                <div className="h-[240px] flex items-center justify-center text-sm text-gray-400">
-                  No revenue data yet.
-                </div>
-              )}
-            </div>
+            {/* Revenue Trend - now its own component with monthly/weekly toggle */}
+            <RevenueTrendCard revenueTrend={revenueTrend} />
 
-            {/* Order Status Breakdown */}
-            <div className="bg-white border border-gray-200 rounded-2xl p-6">
-              <SectionHeader eyebrow="Orders" title="Status Breakdown" />
-              {orderStatusBreakdown.length > 0 ? (
-                <>
-                  <ResponsiveContainer width="100%" height={160}>
-                    <PieChart>
-                      <Pie
-                        data={orderStatusBreakdown}
-                        dataKey="count"
-                        nameKey="status"
-                        innerRadius={45}
-                        outerRadius={70}
-                        paddingAngle={3}
-                      >
-                        {orderStatusBreakdown.map((entry, i) => (
-                          <Cell
-                            key={i}
-                            fill={STATUS_COLORS[entry.status] || "#CBD5E1"}
-                          />
-                        ))}
-                      </Pie>
-                      <Tooltip
-                        contentStyle={{
-                          borderRadius: 12,
-                          border: "1px solid #E5E7EB",
-                          fontSize: 13,
-                        }}
-                      />
-                    </PieChart>
-                  </ResponsiveContainer>
-                  <div className="space-y-2 mt-2">
-                    {orderStatusBreakdown.map((entry, i) => (
-                      <div
-                        key={i}
-                        className="flex items-center justify-between text-sm"
-                      >
-                        <span className="flex items-center gap-2 text-gray-600">
-                          <span
-                            className="w-2.5 h-2.5 rounded-full"
-                            style={{
-                              backgroundColor:
-                                STATUS_COLORS[entry.status] || "#CBD5E1",
-                            }}
-                          />
-                          {entry.status}
-                        </span>
-                        <span className="font-medium text-gray-900">
-                          {entry.count}
-                        </span>
-                      </div>
-                    ))}
-                  </div>
-                </>
-              ) : (
-                <div className="h-[160px] flex items-center justify-center text-sm text-gray-400">
-                  No order data yet.
-                </div>
-              )}
-            </div>
+            {/* Order Status Breakdown - now its own component */}
+            <StatusBreakdownCard orderStatusBreakdown={orderStatusBreakdown} />
           </motion.div>
 
           {/* Recent Orders + Top Workers */}

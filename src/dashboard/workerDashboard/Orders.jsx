@@ -21,7 +21,7 @@ import { toast } from "react-toastify";
 const STATUS_FILTERS = [
   { value: "all", label: "All" },
   { value: "pending", label: "Pending" },
-  { value: "in-progress", label: "In Progress" },
+  // { value: "in-progress", label: "In Progress" },
   { value: "awaiting-pickup", label: "Awaiting Pickup" },
   { value: "completed", label: "Completed" },
 ];
@@ -32,11 +32,11 @@ const STATUS_META = {
     className: "bg-[#FDF3E0] text-[#9A6413]",
     label: "Pending",
   },
-  "in-progress": {
-    icon: HiOutlineRefresh,
-    className: "bg-[#E6F1FB] text-[#0C447C]",
-    label: "In Progress",
-  },
+  // "in-progress": {
+  //   icon: HiOutlineRefresh,
+  //   className: "bg-[#E6F1FB] text-[#0C447C]",
+  //   label: "In Progress",
+  // },
   "awaiting-pickup": {
     icon: HiOutlineTruck,
     className: "bg-[#F1EAFC] text-[#6B3FB8]",

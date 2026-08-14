@@ -23,7 +23,7 @@ import { getOrder, updateOrderStatus } from "../../services/order.service";
 // ---- Status configuration -------------------------------------------
 // Values match the backend exactly: pending, in-progress, awaiting-pickup, completed
 
-const STATUS_FLOW = ["pending", "in-progress", "awaiting-pickup", "completed"];
+const STATUS_FLOW = ["pending", "awaiting-pickup", "completed"];
 
 const STATUS_META = {
   pending: {
@@ -34,14 +34,14 @@ const STATUS_META = {
     border: "#F3DCA6",
     description: "Order logged. Not started yet.",
   },
-  "in-progress": {
-    label: "In Progress",
-    icon: HiOutlineRefresh,
-    color: "#1E88C7",
-    bg: "#E6F1FB",
-    border: "#BFDFF6",
-    description: "Being washed, ironed, or cleaned.",
-  },
+  // "in-progress": {
+  //   label: "In Progress",
+  //   icon: HiOutlineRefresh,
+  //   color: "#1E88C7",
+  //   bg: "#E6F1FB",
+  //   border: "#BFDFF6",
+  //   description: "Being washed, ironed, or cleaned.",
+  // },
   "awaiting-pickup": {
     label: "Awaiting Pickup",
     icon: HiOutlineTruck,

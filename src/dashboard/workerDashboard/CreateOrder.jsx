@@ -87,9 +87,7 @@ const CreateOrder = () => {
       next.price = "Price can't be negative.";
     }
 
-    if (!form.dueDate) {
-      next.dueDate = "Pick a due date.";
-    } else if (form.dueDate < todayISO()) {
+    if (form.dueDate && form.dueDate < todayISO()) {
       next.dueDate = "Due date can't be in the past.";
     }
 
@@ -370,7 +368,7 @@ const CreateOrder = () => {
           <div>
             <label className="flex items-center gap-1.5 text-sm font-medium text-[#0B2540] mb-1.5">
               <HiOutlineCalendar size={16} className="text-[#5B7A93]" />
-              Due date
+              Due date (Optional)
             </label>
             <input
               type="date"
